@@ -1,0 +1,82 @@
+
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:demo_firebase/firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:googleapis_auth/auth.dart';
+import 'package:googleapis_auth/auth_io.dart';
+
+class NotiController {
+  // final FirebaseMessaging messaging = FirebaseMessaging.instance;
+  static String token = '';
+
+  static Future init() async {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform
+    );
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    final t = await FirebaseMessaging.instance.getToken();
+    // print('token $t');
+
+    await FirebaseMessaging.instance.subscribeToTopic('all');
+
+    if(!await AwesomeNotifications().isNotificationAllowed()){
+      await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+    await AwesomeNotifications().initialize(
+        null,
+        [
+          NotificationChannel(
+              // channelGroupKey: 'basic_channel_group',
+              channelKey: 'basic_channel',
+              channelName: 'Basic notifications',
+              channelDescription: 'Notification channel for basic tests',
+              defaultColor: Color(0xFF9D50DD),
+              ledColor: Colors.white)
+        ],
+        channelGroups: [
+          NotificationChannelGroup(
+              channelGroupkey: 'group_2',
+              channelGroupName: 'Basic group 1'),
+          NotificationChannelGroup(
+              channelGroupkey: 'group_3',
+              channelGroupName: 'Basic group 2')
+        ],
+        debug: false
+    );
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+
+    );
+  }
+
+  static Future getAccessToken() async {
+    final accountCredentials = ServiceAccountCredentials.fromJson({
+      "type": "service_account",
+      "project_id": "fir-demo-8bb64",
+      "private_key_id": "8bc4967a1386386edce3dfc91921e654a4cfc816",
+      "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCzyAz8gtMCyEVZ\nuqTmNs0W2cnQZV4zX/U5CnPdr1dBy5z7Svojp9JWjB7ei9WBhUyuyXpviZKQIbks\nVEvu1fFEisjhzknYAGiLSKjXDzKuebnWCnX+19eVLTB+N/KxuAkCw6cMEDe+vPyj\nnjsPzPw4y81B8BhGX42xw5FfdoBMjsgfe4xYSandYFwmcjHd0L/h9eBgOXRiIOyF\n9ux+IdtPnai4beDKiB0uLMNrDlF6BqjMyE2kRZs+5BW/gxL6gfkMkTXLQsELUSQP\n5Eq/z+4PNPXeGnxcfzw6y1zYWMB7iHDmsod6PiT7kEG8A15OAPjxLCjfn3R+20Vp\ndQS5kSRhAgMBAAECggEAPoU4duvsA9CvxWeSBvlR0zuD4nQOEWGyftayuopKlvf/\nLKjDWnj3Pd/WsGACrNs1cqdga79096iyo8bg7Tr7f3GgMF6z8Wka8i0fgkKnxmNQ\njC3xIOHg9+DSN2KvhLxSbeKqihhtumgwl5nkQjdwEzRUujSLzJVYSlSPjppAPd7m\nxLxVFqssIt2Hy1W2GG3+2WDIUJnXYELFLE7FxNc6e9xxK7oECHJevFWbqkBo6Bet\nBHQWGJoh8VFkEqclW/0aKiq8O+EgrOC5u4hdEEzqqV96YLKdM6h5qsN2QY6fvqNs\nl3+LOoT+1LkJKPJ+gcIPDJt6i7W0OP3e8POVUQ9SDQKBgQD4oVh3f4Ruh/3eEzQx\nEeADYwiNWD9lZaFT+6NJOIf0i2OFjpG8owg6l9iKaXg2E17drKdGTJglz+xv3Cy5\nXapht1Ze25Ubs/RPvNIE8PS9iiHVp7+O1pgX5c/Yn7mC821NSZbBP+mi0tOr1Lfg\nWIF998l2CEqPePZ6MKakWZgO6wKBgQC5HERgZYWisdIdG0Gr2thKj3FmSmSQvjlJ\naA6UWSVQzONgjBjpahHwdnKBaZk3dyNiKuN6yE2mjFNNBBa9gHaypbkcZCICJObW\nGKlJeT4GVqkSQnPjOER4Ge6ID/7TWQ0YjPGCbYC89AYmByd223GFQXKGApXO2n2C\n/7d4ap0+4wKBgG6IzJvTxTyemO6x+vIV0FGxJYwxP34EwMRliyJyT38YuRYXXBNR\nJ8dk2pAuc5MW6YYDzBok0z98QNE6QWfnjGgE6hEh7hhy2Jrah0RLG4NodcJW4YLP\nRK7bLJxR5lehgWZq4OrpTyVkNVafK2BB+M/X6WjgJsXCMVIBbxSCAGghAoGAHOlp\nVJUGtk6HvrwPGcRom9yjnZJo+qJ7WBfEjy8NQP1/VgkLqwlCHAikAcp4f80/3YlN\nVlQKrMSmDhVhZ9+0qlpv+xs4pJUW6MGZTzx8j4jhh1SRvR+AsjF6rA2zg1cZUIhT\nAEgSH3ENtMrRQyMrK+D4/i1RMKm3iMpf4ZLlVHkCgYBIHqodRd2WGAz/XtecAyBu\nSc4bQWh8n6YG59LWBn/7IuWYaL5P0q/37XaMSwF7dAe6L5MzvvhGHhafiHjJuRV8\n9YELgiNDJdljYCOKe04klE6p2EUobB5sl/Rdkb92lV+MJ2vNgqGgJbViXp6Xl+F0\nORqgYpA+sOuXB+6fjmCPUg==\n-----END PRIVATE KEY-----\n",
+      "client_email": "firebase-adminsdk-fzjx7@fir-demo-8bb64.iam.gserviceaccount.com",
+      "client_id": "104220987526345570958",
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+      "token_uri": "https://oauth2.googleapis.com/token",
+      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fzjx7%40fir-demo-8bb64.iam.gserviceaccount.com"
+    });
+    final scopes = [
+      "https://www.googleapis.com/auth/firebase.messaging"
+    ];
+    final AuthClient authClient = await clientViaServiceAccount(accountCredentials, scopes);
+    token = authClient.credentials.accessToken.data;
+
+  }
+
+}
